@@ -49,7 +49,7 @@ int main(int argc, char **argv){
   // memset(&state.server_addr, 0, sizeof(state.server_addr));
 
   state.server_addr.sin_family = AF_INET;
-  state.server_addr.sin_port = htons(8000);
+  state.server_addr.sin_port = htons(8001);
   state.server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
   
   printf("Init success\n");
