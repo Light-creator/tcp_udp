@@ -1,4 +1,4 @@
-./client
-./test
-./server
-./test.c
+client
+test
+server
+test.c
