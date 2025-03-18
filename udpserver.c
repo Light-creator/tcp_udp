@@ -168,21 +168,29 @@ void handle_msg(FILE* f) {
   uint8_t ss = *ptr++;
     
   int s_len = strlen(ptr);
-  memcpy(state.curr_msg, ptr, s_len+1);
-  ptr += s_len-1;
+  memcpy(state.curr_msg, ptr, s_len);
+  ptr += s_len;
   *ptr = '\0';
   
-  if(strncmp(state.curr_msg, "stop", 4) == 0) state.stop_server = 1;
+  if(strncmp(state.curr_msg, "stop", 4) == 0 && s_len == 4) state.stop_server = 1;
   // printf("Recived Message: %d %s %s %d:%d:%d %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg);
     
   fprintf(f, "%s %s %d:%d:%d %s\n", phone_1, phone_2, hh, mm, ss, state.curr_msg);
   state.recived_msgs[recv_idx] = 1;
 }
 
+void fatal_err(const char* msg) {
+  server_clean();
+  free_vars();
+  close(state.sock);
+
+  printf("%s", msg);
+  exit(1);
+}
+
 int main(int argc, char** argv) {
   if(argc < 3) {
-    printf("Usage: ./udpserver [port1] [port2]");
-    return 1;
+    fatal_err("Usage: ./udpserver [port1] [port2]");
   }
     
   state.recv_buf = (char*)malloc(sizeof(char)*MAX_MSG_SIZE);
@@ -190,8 +198,7 @@ int main(int argc, char** argv) {
 
   FILE* f = fopen("res.txt", "w");
   if(f == NULL) {
-    printf("Failed to open file\n");
-    goto done;
+    fatal_err("Failed to open file\n");
   }
 
   init_sevrer(atoi(argv[1]), atoi(argv[2]));
@@ -240,7 +247,6 @@ int main(int argc, char** argv) {
     }
   }
 
-done:
   clean_server();
   free_vars();
   fclose(f);

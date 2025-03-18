@@ -1,16 +1,16 @@
 /*
-* MSG_NOSIGNAL - flag to not interrupt program execution, when
+* MSG_NOSIGNAL - flag to not interrupt program execution, when msg not
 *
 */
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
+#include <winsock2.h>
+#include <windows.h>
+
+#pragma comment(lib, "ws2_32.lib")
 
 #define BUF_SIZE 1024
 #define PORT 9000
@@ -38,6 +38,8 @@ typedef struct state_t_ {
   size_t count_msgs;
 
   int msgs_hash[MAX_MSGS];
+
+  WSADATA wsa;
 } state_t;
   
 state_t state;
@@ -142,7 +144,7 @@ void recv_msg() {
   if(res <= 0) return;
 
   struct sockaddr_in addr;
-  socklen_t addrlen = sizeof(addr);
+  int addrlen = sizeof(addr);
   int recv_status = recvfrom(state.sock, buf, MAX_MSG_SIZE, 0, (struct sockaddr*)&addr, &addrlen);
   if(recv_status <= 0) return;
   
@@ -163,7 +165,7 @@ void send_msg() {
 
   if(msg_to_send > state.count_msgs) return;
 
-  int send_status = sendto(state.sock, state.msgs[msg_to_send], MAX_MSG_SIZE, MSG_NOSIGNAL, 
+  int send_status = sendto(state.sock, state.msgs[msg_to_send], MAX_MSG_SIZE, 0, 
                            (struct sockaddr*)&state.server_addr, sizeof(state.server_addr));
 }
 
@@ -174,11 +176,20 @@ void free_vars() {
   free(state.msgs);
 }
 
+void fatal_err(const char* msg) {
+  free_vars();
+  closesocket(state.sock);
+
+  printf("%s", msg);
+  exit(1);
+}
+
 int main(int argc, char **argv){
   if(argc != 3) {
-    fprintf(stderr, "Usage: ./udpclinet <IP>:<PORT> <filename>\n");
-    return 1;
+    fatal_err("Usage: ./udpclinet <IP>:<PORT> <filename>\n");
   }
+
+  WSAStartup(MAKEWORD(2, 2), &state.wsa);
 
   char port[5];
   char ip[16];
@@ -187,8 +198,7 @@ int main(int argc, char **argv){
   char* filename = argv[2];
   FILE* f = fopen(filename, "r");
   if(f == NULL) {
-    printf("Failed to open file\n");
-    return 1;
+    fatal_err("Failed to open file\n");
   }
 
   state.curr_msg_raw = (char*)malloc(sizeof(char)*MAX_MSG_SIZE);
@@ -200,7 +210,7 @@ int main(int argc, char **argv){
 
   state.server_addr.sin_family = AF_INET;
   state.server_addr.sin_port = htons(atoi(port));
-  state.server_addr.sin_addr.s_addr = inet_addr(ip);
+  state.server_addr.sin_addr.S_un.S_addr = inet_addr(ip);
 
   parse_msgs(f);
 
@@ -209,8 +219,7 @@ int main(int argc, char **argv){
     recv_msg();
   }
 
-done:
-  close(state.sock);
+  closesocket(state.sock);
   free_vars();
   fclose(f);
 
