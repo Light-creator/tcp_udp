@@ -1,0 +1,6 @@
++7xxxxxxxxx0 +7xxxxxxxxx1 12:12:12 Message1
++7xxxxxxxxx1 +7xxxxxxxxx2 13:13:13 Message2
++7xxxxxxxxx2 +7xxxxxxxxx3 14:14:14 Message3
++7xxxxxxxxx3 +7xxxxxxxxx4 12:12:12 Message4
++7xxxxxxxxx4 +7xxxxxxxxx5 13:13:13 Message5
++7xxxxxxxxx5 +7xxxxxxxxx6 14:14:14 stop

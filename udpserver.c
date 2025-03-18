@@ -7,7 +7,6 @@
 #include <sys/time.h>
 #include <sys/select.h>
 #include <netdb.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdbool.h>
@@ -16,7 +15,7 @@
 #define BUF_SIZE 1024
 
 #define MAX_CLIENTS 64
-#define MAX_MSG_SIZE 4096
+#define MAX_MSG_SIZE 16384
 #define MAX_MSGS 64
 #define MAX_PORTS 64
 
@@ -54,12 +53,6 @@ typedef struct state_t_ {
 state_t state;
 
 /* ---------------- Clients ----------------*/
-void init_clients(client_t* clients) {
-  for(int i=0; i<MAX_CLIENTS; i++) {
-    // clients->clients[i].fd = -1;
-  }
-}
-
 void add_client(client_t* clients, struct sockaddr_in addr) {
   uint32_t ip = ntohl(addr.sin_addr.s_addr);
   uint16_t port = ntohs(addr.sin_port);
@@ -74,10 +67,10 @@ void add_client(client_t* clients, struct sockaddr_in addr) {
   }
 }
 
-int find_clinet(struct sockaddr_in addr) {
+int find_client(struct sockaddr_in addr) {
   uint32_t ip = ntohl(addr.sin_addr.s_addr);
   uint16_t port = ntohs(addr.sin_port);
-
+  
   int i = 0;
   for(; i<MAX_CLIENTS; i++) {
     if(state.clients[i].ip == ip && state.clients[i].port == port) 
@@ -94,7 +87,9 @@ bool is_client_active(client_t* clients, int idx) {
 void del_client_idx(client_t* clients, int idx) {
   clients[idx].ip = 0;
   clients[idx].port = 0;
+  clients[idx].count_recived = 0;
   memset(&clients[idx].addr, 0, sizeof(clients[idx].addr));
+  memset(&clients[idx].recived_msgs, 0, sizeof(clients[idx].recived_msgs));
 }
 
 void del_client(client_t* clients, struct sockaddr_in addr) {
@@ -142,7 +137,7 @@ void free_vars() {
   free(state.curr_msg);
 }
 
-void handle_msg(int idx, FILE* f) {
+void handle_msg(FILE* f) {
   memset(state.curr_msg, 0, MAX_MSG_SIZE);
 
   if(strncmp(state.recv_buf, "stop", 4) == 0) {
@@ -173,14 +168,15 @@ void handle_msg(int idx, FILE* f) {
   uint8_t ss = *ptr++;
     
   int s_len = strlen(ptr);
-  memcpy(state.curr_msg, ptr, s_len);
+  memcpy(state.curr_msg, ptr, s_len+1);
   ptr += s_len-1;
   *ptr = '\0';
-
-  printf("Recived Message: %d %s %s %d:%d:%d %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg);
+  
+  if(strncmp(state.curr_msg, "stop", 4) == 0) state.stop_server = 1;
+  // printf("Recived Message: %d %s %s %d:%d:%d %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg);
     
   fprintf(f, "%s %s %d:%d:%d %s\n", phone_1, phone_2, hh, mm, ss, state.curr_msg);
-  state.recived_msgs[idx] = 1;
+  state.recived_msgs[recv_idx] = 1;
 }
 
 int main(int argc, char** argv) {
@@ -192,10 +188,15 @@ int main(int argc, char** argv) {
   state.recv_buf = (char*)malloc(sizeof(char)*MAX_MSG_SIZE);
   state.curr_msg = (char*)malloc(sizeof(char)*MAX_MSG_SIZE);
 
+  FILE* f = fopen("res.txt", "w");
+  if(f == NULL) {
+    printf("Failed to open file\n");
+    goto done;
+  }
+
   init_sevrer(atoi(argv[1]), atoi(argv[2]));
 
-  printf("Init success\n");
-  for(;;) {
+  while(!state.stop_server) {
     FD_ZERO(&state.r_fds);
 
     int maxi = 0;
@@ -213,28 +214,28 @@ int main(int argc, char** argv) {
         struct sockaddr_in client_addr;
         socklen_t client_size = sizeof(client_addr);
 
-        int recv_satus = recvfrom(state.socks[i], state.curr_msg, MAX_MSG_SIZE, 0, (struct sockaddr*)&client_addr, &client_size);
+        int recv_satus = recvfrom(state.socks[i], state.recv_buf, MAX_MSG_SIZE, 0, 
+                                  (struct sockaddr*)&client_addr, &client_size);
         if(recv_satus < 0) continue;
-
-        // uint32_t ip = ntohl(client_addr.sin_addr.s_addr);
-        // printf("Client addr: %u\n", ip);
-        // printf("Msg: %s\n", buf);
         
-        add_client(state.clients, client_addr);
+        int client_idx = find_client(client_addr);
+        if(client_idx == MAX_CLIENTS) add_client(state.clients, client_addr);
+        
         int recived_msg;
-        memcpy(&recived_msg, state.curr_msg, sizeof(uint32_t));
+        memcpy(&recived_msg, state.recv_buf, sizeof(uint32_t));
         recived_msg = ntohl(recived_msg);
 
-        int clinet_idx = find_clinet(client_addr);
-        if(state.clients[clinet_idx].recived_msgs[recived_msg] == 0) {
-          state.clients[clinet_idx].recived_msgs[recived_msg] = 1;
-          state.clients[clinet_idx].count_recived++;
+        client_idx = find_client(client_addr);
+        if(state.clients[client_idx].recived_msgs[recived_msg] == 0) {
+          state.clients[client_idx].recived_msgs[recived_msg] = 1;
+          state.clients[client_idx].count_recived++;
         }
         
         recived_msg = htonl(recived_msg);
+        handle_msg(f);
+
         int send_status = sendto(state.socks[i], &recived_msg, sizeof(uint32_t), MSG_NOSIGNAL, 
                                  (struct sockaddr*)&client_addr, client_size);
-        printf("Sended: %d\n", send_status);
       }
     }
   }
@@ -242,6 +243,7 @@ int main(int argc, char** argv) {
 done:
   clean_server();
   free_vars();
+  fclose(f);
 
   return 0;
 }
