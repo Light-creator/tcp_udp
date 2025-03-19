@@ -48,6 +48,7 @@ typedef struct state_t_ {
 
   int recived_msgs[MAX_MSGS];
   int stop_server;
+  int recived_stop;
 } state_t;
 
 state_t state;
@@ -137,15 +138,9 @@ void free_vars() {
   free(state.curr_msg);
 }
 
-void handle_msg(FILE* f) {
+void handle_msg(FILE* f, int client_idx) {
   memset(state.curr_msg, 0, MAX_MSG_SIZE);
 
-  if(strncmp(state.recv_buf, "stop", 4) == 0) {
-    clean_server();
-    state.stop_server = 1;
-    return;
-  }
-  
   char* ptr = state.recv_buf;
 
   uint32_t recv_idx = 0;
@@ -173,10 +168,23 @@ void handle_msg(FILE* f) {
   *ptr = '\0';
   
   if(strncmp(state.curr_msg, "stop", 4) == 0 && s_len == 4) state.stop_server = 1;
+  
   printf("Recived Message: %d %s %s %d:%d:%d %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg);
     
-  fprintf(f, "%s %s %d:%d:%d %s\n", phone_1, phone_2, hh, mm, ss, state.curr_msg);
-  state.recived_msgs[recv_idx] = 1;
+  if(state.clients[client_idx].recived_msgs[recv_idx] == 0) {
+    uint32_t ip = ntohl(state.clients[client_idx].ip);
+    uint16_t port = ntohs(state.clients[client_idx].port);
+    printf("From ip:port -> %u.%u.%u.%u:%u\n", ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, port);
+    fprintf(f, "%u.%u.%u.%u:%u %s %s %d:%d:%d %s\n", 
+            ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, 
+            port,
+            phone_1, phone_2, hh, mm, ss, state.curr_msg);
+
+    state.clients[client_idx].recived_msgs[recv_idx] = 1;
+    state.clients[client_idx].count_recived++;
+  }
+  
+  // state.recived_msgs[recv_idx] = 1;
 }
 
 void fatal_err(const char* msg) {
@@ -228,21 +236,32 @@ int main(int argc, char** argv) {
         int client_idx = find_client(client_addr);
         if(client_idx == MAX_CLIENTS) add_client(state.clients, client_addr);
         
-        int recived_msg;
-        memcpy(&recived_msg, state.recv_buf, sizeof(uint32_t));
-        recived_msg = ntohl(recived_msg);
+        // int recived_msg;
+        // memcpy(&recived_msg, state.recv_buf, sizeof(uint32_t));
+        // recived_msg = ntohl(recived_msg);
 
-        client_idx = find_client(client_addr);
-        if(state.clients[client_idx].recived_msgs[recived_msg] == 0) {
-          state.clients[client_idx].recived_msgs[recived_msg] = 1;
-          state.clients[client_idx].count_recived++;
+        // client_idx = find_client(client_addr);
+        // if(state.clients[client_idx].recived_msgs[recived_msg] == 0) {
+        //   state.clients[client_idx].recived_msgs[recived_msg] = 1;
+        //   state.clients[client_idx].count_recived++;
+        // }
+        // 
+
+        
+        // recived_msg = htonl(recived_msg);
+        handle_msg(f, client_idx);
+        
+        uint32_t msgs_to_send[MAX_MSGS];
+        int j = 0;
+        for(int i=0; i<MAX_MSGS; i++) {
+          if(state.clients[client_idx].recived_msgs[i]) 
+            msgs_to_send[j++] = htonl(i);
         }
         
-        recived_msg = htonl(recived_msg);
-        handle_msg(f);
-
-        int send_status = sendto(state.socks[i], &recived_msg, sizeof(uint32_t), MSG_NOSIGNAL, 
+        int send_status = sendto(state.socks[i], msgs_to_send, sizeof(uint32_t)*MAX_MSGS, MSG_NOSIGNAL, 
                                  (struct sockaddr*)&client_addr, client_size);
+        // int send_status = sendto(state.socks[i], &recived_msg, sizeof(uint32_t), MSG_NOSIGNAL, 
+        //                          (struct sockaddr*)&client_addr, client_size);
       }
     }
   }
