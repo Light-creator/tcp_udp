@@ -173,16 +173,15 @@ void handle_msg(FILE* f) {
   *ptr = '\0';
   
   if(strncmp(state.curr_msg, "stop", 4) == 0 && s_len == 4) state.stop_server = 1;
-  // printf("Recived Message: %d %s %s %d:%d:%d %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg);
+  printf("Recived Message: %d %s %s %d:%d:%d %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg);
     
   fprintf(f, "%s %s %d:%d:%d %s\n", phone_1, phone_2, hh, mm, ss, state.curr_msg);
   state.recived_msgs[recv_idx] = 1;
 }
 
 void fatal_err(const char* msg) {
-  server_clean();
+  clean_server();
   free_vars();
-  close(state.sock);
 
   printf("%s", msg);
   exit(1);
@@ -202,7 +201,8 @@ int main(int argc, char** argv) {
   }
 
   init_sevrer(atoi(argv[1]), atoi(argv[2]));
-
+  
+  printf("Init success\n");
   while(!state.stop_server) {
     FD_ZERO(&state.r_fds);
 
