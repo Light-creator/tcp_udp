@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
     conn = connect(state.sock, (struct sockaddr*)&state.server_addr, sizeof(state.server_addr));
     if(conn >= 0) break;
       
-    sleep(1);
+    usleep(100*1000);
   }
 
   if(conn < 0) {
