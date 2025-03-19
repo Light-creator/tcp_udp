@@ -163,6 +163,46 @@ void send_msg() {
                            (struct sockaddr*)&state.server_addr, sizeof(state.server_addr));
 }
 
+void send_msgs() {
+  int msg_to_send = 0;
+  // for(; msg_to_send<state.count_msgs && state.msgs_hash[msg_to_send] == 1; msg_to_send++) {}
+  for(int i=0; i<state.count_msgs; i++) {
+    if(state.msgs_hash[i]) {
+      int send_status = sendto(state.sock, state.msgs[msg_to_send], MAX_MSG_SIZE, 0, 
+                               (struct sockaddr*)&state.server_addr, sizeof(state.server_addr));
+    }
+  }
+}
+
+void recv_msgs() {
+  char buf[MAX_MSG_SIZE];
+
+  struct timeval tv = {1, 100*1000};
+
+  fd_set fds;
+  FD_ZERO(&fds); FD_SET(state.sock, &fds);
+  
+  int res = select(state.sock+1, &fds, 0, 0, &tv);
+  if(res <= 0) return;
+
+  for(int i=0; i<state.count_msgs; i++) {
+    struct sockaddr_in addr;
+    socklen_t addrlen = sizeof(addr);
+    int recv_status = recvfrom(state.sock, buf, MAX_MSG_SIZE, 0, (struct sockaddr*)&addr, &addrlen);
+    if(recv_status <= 0) return;
+
+    uint32_t recived_msg;
+    memcpy(&recived_msg, buf, sizeof(uint32_t));
+    recived_msg = ntohl(recived_msg);
+    // printf("[+] Recived: %d\n", recived_msg);
+
+    if(recived_msg < state.count_msgs && state.msgs_hash[recived_msg] == 0) {
+      state.recived_msgs++;
+      state.msgs_hash[recived_msg] = 1;
+    }
+  }
+}
+
 void free_vars() {
   free(state.curr_msg_raw);
   free(state.curr_msg_ready);
@@ -207,9 +247,9 @@ int main(int argc, char **argv){
   parse_msgs(f);
 
   while(state.recived_msgs < LIM_MSGS && state.recived_msgs < state.count_msgs) {
-    send_msg();
+    send_msgs();
     printf("[+] Sended\n");
-    recv_msg();
+    recv_msgs();
     sleep(1);
   }
 
