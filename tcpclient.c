@@ -79,7 +79,7 @@ void parse_msg(uint32_t idx) {
   // printf("\n");
   
   int s_len = strlen(ptr_raw);
-  memcpy(ptr_ready, ptr_raw, s_len-2);
+  memcpy(ptr_ready, ptr_raw, s_len);
 }
 
 void parse_addr(char* buf, char* ip, char* port) {
@@ -114,7 +114,7 @@ void wait_ok_msg() {
   while(strncmp(state.recv_buf, "ok", 2) != 0) {
     recv_status = recv(state.sock, state.recv_buf, MAX_MSG_SIZE, 0);
   }
-  // printf("[+] Recived ok\n");
+  /* printf("[+] Recived ok\n"); */
 }
 
 void send_msgs(FILE* f) {
@@ -123,17 +123,17 @@ void send_msgs(FILE* f) {
   char recv_buf[MAX_MSG_SIZE];
 
   int send_status = send(state.sock, "put", 3, 0);
-  wait_ok_msg();
+  // wait_ok_msg();
   
   while(fgets(state.curr_msg_raw, MAX_MSG_SIZE, f)) {
-    // printf("%s\n", state.curr_msg_raw);
+    printf("%s\n", state.curr_msg_raw);
     char* ptr = state.curr_msg_raw;
     while(*ptr && (*ptr == '\n' || *ptr == '\r')) ptr++;
     if(*ptr == '\0') continue;
 
     parse_msg(idx++);
     send_msg();
-    // printf("[+] Sended msg: %d\n", idx-1);
+    /* printf("[+] Sended msg: %d\n", idx-1); */
     wait_ok_msg();
   }
 }
@@ -178,14 +178,14 @@ int main(int argc, char** argv) {
     conn = connect(state.sock, (struct sockaddr*)&state.server_addr, sizeof(state.server_addr));
     if(conn >= 0) break;
       
-    usleep(100*1000);
+		usleep(100*1000);
   }
 
   if(conn < 0) {
     fatal_err("Connection error\n");
   }
   
-  // printf("Connection success\n");
+  printf("Connection success\n");
   send_msgs(f);
 
   close(state.sock);

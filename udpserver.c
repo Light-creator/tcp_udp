@@ -64,6 +64,7 @@ void add_client(client_t* clients, struct sockaddr_in addr) {
       clients[i].ip = ip;
       clients[i].port = port;
       clients[i].addr_size = sizeof(clients[i].addr);
+			break;
     }
   }
 }
@@ -105,7 +106,7 @@ void del_client(client_t* clients, struct sockaddr_in addr) {
 
 /* ---------------- Utils ----------------*/
 void init_sevrer(int start_port, int end_port) {
-  state.ports_count = end_port-start_port;
+  state.ports_count = end_port-start_port+1;
   for(int i=0; i<state.ports_count; i++) {
     int port = start_port + i;
     
@@ -174,7 +175,7 @@ void handle_msg(FILE* f, int client_idx) {
   if(state.clients[client_idx].recived_msgs[recv_idx] == 0) {
     uint32_t ip = ntohl(state.clients[client_idx].ip);
     uint16_t port = ntohs(state.clients[client_idx].port);
-    // printf("From ip:port -> %u.%u.%u.%u:%u\n", ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, port);
+		/* printf("From ip:port -> %u.%u.%u.%u:%u\n", ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, port); */
     fprintf(f, "%u.%u.%u.%u:%u %s %s %d:%d:%d %s\n", 
             ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, 
             port,
@@ -208,7 +209,7 @@ int main(int argc, char** argv) {
 
   init_sevrer(atoi(argv[1]), atoi(argv[2]));
   
-  // printf("Init success\n");
+	/* printf("Init success\n"); */
   while(!state.stop_server) {
     FD_ZERO(&state.r_fds);
 
