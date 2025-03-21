@@ -1,8 +1,3 @@
-/*
-* MSG_NOSIGNAL - flag to not interrupt program execution, when msg not
-*
-*/
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -28,8 +23,8 @@
 typedef struct state_t_ {
   struct sockaddr_in server_addr;
   int sock;
-
-  char* curr_msg_raw;
+ 
+	char* curr_msg_raw;
   char* curr_msg_ready;
   char** msgs;
   size_t sz;
@@ -123,9 +118,6 @@ void parse_msgs(FILE* f) {
     state.msgs[msg_idx] = (char*)malloc(sizeof(char)*MAX_MSG_SIZE);  
     
     parse_msg(msg_idx, state.msgs[msg_idx]);
-
-    // printf("parsing msg_idx: %d\n", msg_idx);
-    // hex_dump_msg(state.msgs[msg_idx], 128);
     
     msg_idx++;
     state.count_msgs++;
@@ -133,8 +125,6 @@ void parse_msgs(FILE* f) {
 }
 
 void recv_msg() {
-  char buf[MAX_MSG_SIZE];
-
   struct timeval tv = {1, 100*1000};
 
   fd_set fds;
@@ -145,17 +135,28 @@ void recv_msg() {
 
   struct sockaddr_in addr;
   int addrlen = sizeof(addr);
-  int recv_status = recvfrom(state.sock, buf, MAX_MSG_SIZE, 0, (struct sockaddr*)&addr, &addrlen);
+
+  uint32_t buf[MAX_MSGS];
+  int recv_status = recvfrom(state.sock, (char*)buf, sizeof(uint32_t)*MAX_MSGS, 0, (struct sockaddr*)&addr, &addrlen);
   if(recv_status <= 0) return;
   
-  uint32_t recived_msg;
-  memcpy(&recived_msg, buf, sizeof(uint32_t));
-  recived_msg = ntohl(recived_msg);
-  // printf("[+] Recived: %d\n", recived_msg);
-  
-  if(recived_msg < state.count_msgs && state.msgs_hash[recived_msg] == 0) {
-    state.recived_msgs++;
-    state.msgs_hash[recived_msg] = 1;
+  for(int i=0; i<MAX_MSGS; i++) {
+    uint32_t recived_msg = ntohl(buf[i]);
+    if(recived_msg < state.count_msgs && state.msgs_hash[recived_msg] == 0) {
+      state.recived_msgs++;
+      state.msgs_hash[recived_msg] = 1;
+    }
+  }
+}
+
+void send_msgs() {
+  int msg_to_send = 0;
+  for(int i=0; i<state.count_msgs; i++) {
+    if(state.msgs_hash[i] == 0) {
+		  Sleep(1000);
+      int send_status = sendto(state.sock, state.msgs[i], MAX_MSG_SIZE, 0, 
+                               (struct sockaddr*)&state.server_addr, sizeof(state.server_addr));
+    }
   }
 }
 
@@ -215,7 +216,7 @@ int main(int argc, char **argv){
   parse_msgs(f);
 
   while(state.recived_msgs < LIM_MSGS && state.recived_msgs < state.count_msgs) {
-    send_msg();
+    send_msgs();
     recv_msg();
   }
 

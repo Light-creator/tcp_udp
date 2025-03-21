@@ -51,7 +51,7 @@ void init_clients(client_t* clients) {
 void add_client(client_t* clients, WSAEVENT event, int fd, struct sockaddr_in addr) {
   uint32_t ip = ntohl(addr.sin_addr.s_addr);
   uint16_t port = ntohs(addr.sin_port);
-
+	
   for(int i=0; i<MAX_CLIENTS; i++) {
     if(clients[i].fd == -1) {
       clients[i].fd = fd;
@@ -125,12 +125,11 @@ void handle_msg(int idx, char* recv_buf, FILE* f) {
   memcpy(state.curr_msg, ptr, s_len);
   ptr += s_len-1;
   *ptr = '\0';
-    
-  // printf("Message field len: %d\n", s_len);
+	
   if(strncmp(state.curr_msg, "stop", 4) == 0 && s_len == 4) state.stop_server = 1;
-
-  uint32_t ip = ntohl(state.clients[client_idx].ip);
-  uint16_t port = ntohs(state.clients[client_idx].port);
+	
+  uint32_t ip = ntohl(state.clients[idx].ip);
+  uint16_t port = ntohs(state.clients[idx].port);
   // printf("From ip:port -> %u.%u.%u.%u:%u\n", ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, port);
   fprintf(f, "%u.%u.%u.%u:%u %s %s %d:%d:%d %s\n", 
           ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, 
@@ -138,7 +137,7 @@ void handle_msg(int idx, char* recv_buf, FILE* f) {
           phone_1, phone_2, hh, mm, ss, state.curr_msg);
 
   // printf("Recived Message: %d %s %s %d:%d:%d %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg);
-  fprintf(f, "%s %s %d:%d:%d %s\n", phone_1, phone_2, hh, mm, ss, state.curr_msg);
+  // fprintf(f, "%s %s %d:%d:%d %s\n", phone_1, phone_2, hh, mm, ss, state.curr_msg);
   int send_status = send(state.clients[idx].fd, "ok", 2, 0);
 }
 
@@ -211,8 +210,6 @@ int main(int argc, char** argv) {
       int client_len = sizeof(client_addr);
       int conn = accept(state.sock, (struct sockaddr*)&client_addr, &client_len);
       add_client(state.clients, state.events[1], conn, client_addr);
-
-      // printf("Connect client with fd = %d...\n", conn);
     }
     
     for(int i=0; i<MAX_CLIENTS; i++) {
