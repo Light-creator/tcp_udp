@@ -83,8 +83,8 @@ void parse_msg(uint32_t idx, char* dst) {
   *ptr_ready++ = ss;
 
   int s_len = strlen(ptr_raw);
-  memcpy(ptr_ready, ptr_raw, s_len-1);
-  ptr_ready += s_len-1;
+  memcpy(ptr_ready, ptr_raw, s_len);
+  ptr_ready += s_len;
   *ptr_ready = '\0'; 
 
   memset(state.curr_msg_raw, 0, MAX_MSG_SIZE);
@@ -115,7 +115,11 @@ void hex_dump_msg(char* s, int l) {
 void parse_msgs(FILE* f) {
   int msg_idx = 0;
   while(fgets(state.curr_msg_raw, MAX_MSG_SIZE, f)) {
-    state.msgs[msg_idx] = (char*)malloc(sizeof(char)*MAX_MSG_SIZE);  
+    char* ptr = state.curr_msg_raw;
+    while(*ptr && (*ptr == '\n' || *ptr == '\r')) ptr++;
+    if(*ptr == '\0') continue;
+    
+		state.msgs[msg_idx] = (char*)malloc(sizeof(char)*MAX_MSG_SIZE);  
     
     parse_msg(msg_idx, state.msgs[msg_idx]);
     
@@ -142,10 +146,13 @@ void recv_msg() {
   
   for(int i=0; i<MAX_MSGS; i++) {
     uint32_t recived_msg = ntohl(buf[i]);
+		/* printf("[+] Recived: "); */
     if(recived_msg < state.count_msgs && state.msgs_hash[recived_msg] == 0) {
-      state.recived_msgs++;
+      /* printf("%u ", recived_msg); */
+			state.recived_msgs++;
       state.msgs_hash[recived_msg] = 1;
     }
+		/* printf("\n"); */
   }
 }
 
@@ -153,10 +160,11 @@ void send_msgs() {
   int msg_to_send = 0;
   for(int i=0; i<state.count_msgs; i++) {
     if(state.msgs_hash[i] == 0) {
-		  Sleep(1000);
+			/* Sleep(1000); */
       int send_status = sendto(state.sock, state.msgs[i], MAX_MSG_SIZE, 0, 
                                (struct sockaddr*)&state.server_addr, sizeof(state.server_addr));
-    }
+			/* printf("[+] Sended msg: %d\n", i); */
+		}
   }
 }
 
@@ -214,7 +222,8 @@ int main(int argc, char **argv){
   state.server_addr.sin_addr.S_un.S_addr = inet_addr(ip);
 
   parse_msgs(f);
-
+	
+	/* printf("[+] Init success: Count msgs = %d\n", state.count_msgs); */
   while(state.recived_msgs < LIM_MSGS && state.recived_msgs < state.count_msgs) {
     send_msgs();
     recv_msg();
