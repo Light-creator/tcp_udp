@@ -88,24 +88,36 @@ void server_clean() {
   }
 }
 
+void hex_dump(char* buf, int len) {
+	for(int i=0; i<len; i++) printf("%x ", buf[i] & 0xff);
+	printf("\n");
+}
+
 void handle_msg(int idx, char* recv_buf, FILE* f) {
+	/* printf("[+] Handle message\n"); */
   memset(state.recv_buf, 0, MAX_MSG_SIZE);
   memset(state.curr_msg, 0, MAX_MSG_SIZE);
   
   int client_len = sizeof(state.clients[idx].addr);
   int recv_status = recv(state.clients[idx].fd, state.recv_buf, MAX_MSG_SIZE, 0);
-  
+ 
+	hex_dump(state.recv_buf, 56);
+  char* ptr = state.recv_buf;
+
   if(strncmp(state.recv_buf, "put", 3) == 0) {
     int send_status = send(state.clients[idx].fd, "ok", 2, 0);
-    return;
+    ptr += 3;
+		/* while(*ptr && (*ptr = ' ' || *ptr == '\n' || *ptr == '\r')) ptr++; */
+		/* if(*ptr == '\0') return; */
+		if(*(ptr+4) != 0x2b) return;
   }
-
-  char* ptr = state.recv_buf;
 
   uint32_t recv_idx = 0;
   memcpy(&recv_idx, ptr, sizeof(uint32_t));
   ptr += sizeof(uint32_t);
   recv_idx = htonl(recv_idx);
+	
+	printf("%u\n", recv_idx);
 
   char phone_1[PHONE_SIZE];
   memcpy(phone_1, ptr, sizeof(char)*PHONE_SIZE);
@@ -123,7 +135,7 @@ void handle_msg(int idx, char* recv_buf, FILE* f) {
     
   int s_len = strlen(ptr);
   memcpy(state.curr_msg, ptr, s_len);
-  ptr += s_len-1;
+  ptr += s_len-2;
   *ptr = '\0';
 	
   if(strncmp(state.curr_msg, "stop", 4) == 0 && s_len == 4) state.stop_server = 1;
@@ -131,12 +143,12 @@ void handle_msg(int idx, char* recv_buf, FILE* f) {
   uint32_t ip = ntohl(state.clients[idx].ip);
   uint16_t port = ntohs(state.clients[idx].port);
   // printf("From ip:port -> %u.%u.%u.%u:%u\n", ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, port);
-  fprintf(f, "%u.%u.%u.%u:%u %s %s %d:%d:%d %s\n", 
+  fprintf(f, "%u.%u.%u.%u:%u %s %s %d:%d:%d %s", 
           ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, 
           port,
           phone_1, phone_2, hh, mm, ss, state.curr_msg);
 
-  // printf("Recived Message: %d %s %s %d:%d:%d %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg);
+	/* printf("Recived Message: %d %s %s %d:%d:%d %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg); */
   // fprintf(f, "%s %s %d:%d:%d %s\n", phone_1, phone_2, hh, mm, ss, state.curr_msg);
   int send_status = send(state.clients[idx].fd, "ok", 2, 0);
 }
