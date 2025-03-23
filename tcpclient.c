@@ -89,8 +89,8 @@ void parse_msg(uint32_t idx) {
 	ptr_raw += s_len;
 	*ptr_raw = '\0';
 
-	printf("[+] Hex dump in parse_msg:\n");
-	hex_dump(state.curr_msg_ready, 56);
+	/* printf("[+] Hex dump in parse_msg:\n"); */
+	/* hex_dump(state.curr_msg_ready, 56); */
 	
 	state.curr_msg_len = FIRST_PART_SIZE + s_len;
 }
@@ -119,9 +119,9 @@ void free_vars() {
 }
 
 void send_msg() {
-  printf("[+] Hex dump in send_msg:\n");
-	hex_dump(state.curr_msg_ready, 56);
-	printf("---------------\n");
+  /* printf("[+] Hex dump in send_msg:\n"); */
+	/* hex_dump(state.curr_msg_ready, 56); */
+	/* printf("---------------\n"); */
 	int send_status = send(state.sock, state.curr_msg_ready, state.curr_msg_len, 0);
 }
 
@@ -129,8 +129,9 @@ void wait_ok_msg() {
   int recv_status = recv(state.sock, state.recv_buf, MAX_MSG_SIZE, 0);
   while(strncmp(state.recv_buf, "ok", 2) != 0) {
     recv_status = recv(state.sock, state.recv_buf, MAX_MSG_SIZE, 0);
-  }
-  /* printf("[+] Recived ok\n"); */
+		/* printf("[+] Recived: %s\n", state.recv_buf); */
+	}
+	/* printf("[+] Recived ok\n"); */
 }
 
 void send_msgs(FILE* f) {
@@ -147,7 +148,7 @@ void send_msgs(FILE* f) {
     /* while(*ptr && (*ptr == '\n' || *ptr == '\r')) ptr++; */
 		if(*ptr == '\0' || *ptr == '\n' || *ptr == '\r') continue;
 		
-		printf("Parsing msg: %d\n", idx);
+		/* printf("Parsing msg: %d\n", idx); */
     parse_msg(idx++);
     send_msg();
     /* printf("[+] Sended msg: %d\n", idx-1); */
@@ -159,7 +160,7 @@ void send_msgs(FILE* f) {
 
 void fatal_err(const char* msg) {
   free_vars();
-  close(state.sock);
+	close(state.sock);
 
   printf("%s", msg);
   exit(1);
@@ -204,9 +205,10 @@ int main(int argc, char** argv) {
     fatal_err("Connection error\n");
   }
   
-  printf("Connection success\n");
+  /* printf("Connection success\n"); */
   send_msgs(f);
-
+	
+	/* printf("[+] Closeing connection\n"); */
   close(state.sock);
   free_vars();
 
