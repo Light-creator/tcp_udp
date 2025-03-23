@@ -25,10 +25,17 @@ typedef struct state_t_ {
   char* curr_msg_raw;
   char* curr_msg_ready;
   char* recv_buf;
+
+	size_t curr_msg_len;
   size_t sz;
 } state_t;
 
 state_t state;
+
+void hex_dump(char* buf, int len) {
+	for(int i=0; i<len; i++) printf("%x ", buf[i] & 0xff);
+	printf("\n");
+}
 
 void parse_msg(uint32_t idx) {
   idx = htonl(idx);
@@ -38,7 +45,7 @@ void parse_msg(uint32_t idx) {
   char* ptr_ready = state.curr_msg_ready;
   
   // Skip spaces
-  while(*ptr_raw && *ptr_raw == ' ') ptr_raw++;
+	while(*ptr_raw && *ptr_raw == ' ') ptr_raw++;
   
   // Message index
   memcpy(ptr_ready, &idx, sizeof(uint32_t));
@@ -74,12 +81,18 @@ void parse_msg(uint32_t idx) {
   ptr_raw += TIME_SIZE + 1;
   uint8_t ss = (uint8_t)atoi(time_buf);
   *ptr_ready++ = ss;
+	
 
-  // for(int i=0; i<128; i++) printf("%d ", state.curr_msg_ready[i]);
-  // printf("\n");
   
   int s_len = strlen(ptr_raw);
   memcpy(ptr_ready, ptr_raw, s_len);
+	ptr_raw += s_len;
+	*ptr_raw = '\0';
+
+	printf("[+] Hex dump in parse_msg:\n");
+	hex_dump(state.curr_msg_ready, 56);
+	
+	state.curr_msg_len = FIRST_PART_SIZE + s_len;
 }
 
 void parse_addr(char* buf, char* ip, char* port) {
@@ -106,7 +119,10 @@ void free_vars() {
 }
 
 void send_msg() {
-  int send_status = send(state.sock, state.curr_msg_ready, MAX_MSG_SIZE, 0);
+  printf("[+] Hex dump in send_msg:\n");
+	hex_dump(state.curr_msg_ready, 56);
+	printf("---------------\n");
+	int send_status = send(state.sock, state.curr_msg_ready, state.curr_msg_len, 0);
 }
 
 void wait_ok_msg() {
@@ -128,13 +144,16 @@ void send_msgs(FILE* f) {
   while(fgets(state.curr_msg_raw, MAX_MSG_SIZE, f)) {
     printf("%s\n", state.curr_msg_raw);
     char* ptr = state.curr_msg_raw;
-    while(*ptr && (*ptr == '\n' || *ptr == '\r')) ptr++;
-    if(*ptr == '\0') continue;
-
+    /* while(*ptr && (*ptr == '\n' || *ptr == '\r')) ptr++; */
+		if(*ptr == '\0' || *ptr == '\n' || *ptr == '\r') continue;
+		
+		printf("Parsing msg: %d\n", idx);
     parse_msg(idx++);
     send_msg();
     /* printf("[+] Sended msg: %d\n", idx-1); */
     wait_ok_msg();
+
+		memset(state.curr_msg_raw, 0, MAX_MSG_SIZE);
   }
 }
 

@@ -170,12 +170,12 @@ void handle_msg(FILE* f, int client_idx) {
   
   if(strncmp(state.curr_msg, "stop", 4) == 0 && s_len == 4) state.stop_server = 1;
   
-  // printf("Recived Message: %d %s %s %d:%d:%d %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg);
+	printf("Recived Message: %d %s %s %d:%d:%d %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg);
     
   if(state.clients[client_idx].recived_msgs[recv_idx] == 0) {
     uint32_t ip = ntohl(state.clients[client_idx].ip);
     uint16_t port = ntohs(state.clients[client_idx].port);
-		/* printf("From ip:port -> %u.%u.%u.%u:%u\n", ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, port); */
+		printf("From ip:port -> %u.%u.%u.%u:%u\n", ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, port);
     fprintf(f, "%u.%u.%u.%u:%u %s %s %d:%d:%d %s\n", 
             ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, 
             port,
@@ -209,7 +209,7 @@ int main(int argc, char** argv) {
 
   init_sevrer(atoi(argv[1]), atoi(argv[2]));
   
-	/* printf("Init success\n"); */
+	printf("Init success\n");
   while(!state.stop_server) {
     FD_ZERO(&state.r_fds);
 
