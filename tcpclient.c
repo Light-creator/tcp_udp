@@ -17,6 +17,7 @@
 #define TIME_SIZE 2
 #define FIRST_PART_SIZE   35
 #define SECOND_PART_SIZE  MAX_MSG_SIZE-FIRST_PART_SIZE
+#define SPACES_SIZE 3
 
 typedef struct state_t_ {
   struct sockaddr_in server_addr;
@@ -92,7 +93,7 @@ void parse_msg(uint32_t idx) {
 	/* printf("[+] Hex dump in parse_msg:\n"); */
 	/* hex_dump(state.curr_msg_ready, 56); */
 	
-	state.curr_msg_len = FIRST_PART_SIZE + s_len;
+	state.curr_msg_len = FIRST_PART_SIZE + s_len - SPACES_SIZE;
 }
 
 void parse_addr(char* buf, char* ip, char* port) {
