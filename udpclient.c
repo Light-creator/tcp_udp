@@ -16,6 +16,7 @@
 #define TIME_SIZE 2
 #define FIRST_PART_SIZE   35
 #define SECOND_PART_SIZE  MAX_MSG_SIZE-FIRST_PART_SIZE
+#define SPACES_SIZE 3
 
 #define MAX_MSGS 64
 #define LIM_MSGS 20
@@ -26,7 +27,10 @@ typedef struct state_t_ {
  
 	char* curr_msg_raw;
   char* curr_msg_ready;
-  char** msgs;
+  
+	char** msgs;
+	int msgs_len[MAX_MSGS];
+
   size_t sz;
 
   size_t recived_msgs;
@@ -39,7 +43,7 @@ typedef struct state_t_ {
   
 state_t state;
 
-void parse_msg(uint32_t idx, char* dst) {
+void parse_msg(uint32_t idx, char* dst, int msg_idx) {
   idx = htonl(idx);
 
   char* ptr_raw = state.curr_msg_raw;
@@ -86,6 +90,8 @@ void parse_msg(uint32_t idx, char* dst) {
   memcpy(ptr_ready, ptr_raw, s_len);
   ptr_ready += s_len;
   *ptr_ready = '\0'; 
+	
+	state.msgs_len[msg_idx] = FIRST_PART_SIZE + s_len - SPACES_SIZE;
 
   memset(state.curr_msg_raw, 0, MAX_MSG_SIZE);
 }
@@ -121,7 +127,7 @@ void parse_msgs(FILE* f) {
     
 		state.msgs[msg_idx] = (char*)malloc(sizeof(char)*MAX_MSG_SIZE);  
     
-    parse_msg(msg_idx, state.msgs[msg_idx]);
+    parse_msg(msg_idx, state.msgs[msg_idx], msg_idx);
     
     msg_idx++;
     state.count_msgs++;
@@ -129,7 +135,7 @@ void parse_msgs(FILE* f) {
 }
 
 void recv_msg() {
-  struct timeval tv = {1, 100*1000};
+  struct timeval tv = {0, 100*1000};
 
   fd_set fds;
   FD_ZERO(&fds); FD_SET(state.sock, &fds);
@@ -161,7 +167,7 @@ void send_msgs() {
   for(int i=0; i<state.count_msgs; i++) {
     if(state.msgs_hash[i] == 0) {
 			/* Sleep(1000); */
-      int send_status = sendto(state.sock, state.msgs[i], MAX_MSG_SIZE, 0, 
+      int send_status = sendto(state.sock, state.msgs[i], state.msgs_len[i], 0, 
                                (struct sockaddr*)&state.server_addr, sizeof(state.server_addr));
 			/* printf("[+] Sended msg: %d\n", i); */
 		}
