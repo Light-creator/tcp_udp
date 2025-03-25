@@ -15,7 +15,7 @@
 #define BUF_SIZE 1024
 
 #define MAX_CLIENTS 64
-#define MAX_MSG_SIZE 16384
+#define MAX_MSG_SIZE 65535
 #define MAX_MSGS 21
 #define MAX_PORTS 64
 
@@ -172,7 +172,7 @@ void handle_msg(FILE* f, int client_idx) {
   
   if(strncmp(state.curr_msg, "stop", 4) == 0 && s_len == 4) state.stop_server = 1;
   
-	printf("Recived Message: %d %s %s %02hhu:%02hhu:%02hhu %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg);
+	/* printf("Recived Message: %d %s %s %02hhu:%02hhu:%02hhu %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg); */
     
   if(state.clients[client_idx].recived_msgs[arr_idx] == -1) {
     uint32_t ip = ntohl(state.clients[client_idx].ip);

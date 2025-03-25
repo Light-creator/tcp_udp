@@ -11,7 +11,7 @@
 #define RECV_BUF_SIZE 64
 #define PORT 9000
 
-#define MAX_MSG_SIZE 4096
+#define MAX_MSG_SIZE 65535
 
 #define PHONE_SIZE 12
 #define TIME_SIZE 2
@@ -127,11 +127,17 @@ void send_msg() {
 }
 
 void wait_ok_msg() {
-  int recv_status = recv(state.sock, state.recv_buf, MAX_MSG_SIZE, 0);
-  while(strncmp(state.recv_buf, "ok", 2) != 0) {
-    recv_status = recv(state.sock, state.recv_buf, MAX_MSG_SIZE, 0);
-		/* printf("[+] Recived: %s\n", state.recv_buf); */
+  int recv_status = recv(state.sock, state.recv_buf, 2, 0);
+	while(strncmp("ok", state.recv_buf, 2) != 0 && state.recv_buf[0] != 'k') {
+		/* printf("%s\n", state.recv_buf); */
+		recv_status = recv(state.sock, state.recv_buf, MAX_MSG_SIZE, 0);
 	}
+
+  /* int recv_status = recv(state.sock, state.recv_buf, MAX_MSG_SIZE, 0); */
+  /* while(strncmp(state.recv_buf, "ok", 2) != 0) { */
+  /*   recv_status = recv(state.sock, state.recv_buf, MAX_MSG_SIZE, 0); */
+	/*   [> printf("[+] Recived: %s\n", state.recv_buf); <] */
+	/* } */
 	/* printf("[+] Recived ok\n"); */
 }
 

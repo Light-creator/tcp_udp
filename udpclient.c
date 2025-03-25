@@ -10,7 +10,7 @@
 #define BUF_SIZE 1024
 #define PORT 9000
 
-#define MAX_MSG_SIZE 16384
+#define MAX_MSG_SIZE 65535
 
 #define PHONE_SIZE 12
 #define TIME_SIZE 2

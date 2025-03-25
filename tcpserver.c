@@ -12,7 +12,7 @@
 #define BUF_SIZE 1024
 
 #define MAX_CLIENTS 64
-#define MAX_MSG_SIZE 4096
+#define MAX_MSG_SIZE 65535
 
 #define PHONE_SIZE 13
 #define TIME_SIZE 2
