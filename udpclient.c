@@ -86,10 +86,17 @@ void parse_msg(uint32_t idx, char* dst, int msg_idx) {
   uint8_t ss = (uint8_t)atoi(time_buf);
   *ptr_ready++ = ss;
 
-  int s_len = strlen(ptr_raw);
-  memcpy(ptr_ready, ptr_raw, s_len);
-  ptr_ready += s_len;
-  *ptr_ready = '\0'; 
+  /* int s_len = strlen(ptr_raw); */
+  /* memcpy(ptr_ready, ptr_raw, s_len); */
+  /* ptr_ready += s_len; */
+  /* *ptr_ready = '\0';  */
+
+  int s_len = 0;
+  while(*ptr_raw && *ptr_raw != '\n') {
+    *ptr_ready++ = *ptr_raw++;
+    s_len++;
+  }
+  *ptr_ready = '\0';
 	
 	state.msgs_len[msg_idx] = FIRST_PART_SIZE + s_len - SPACES_SIZE;
 

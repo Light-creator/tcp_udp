@@ -83,12 +83,17 @@ void parse_msg(uint32_t idx) {
   uint8_t ss = (uint8_t)atoi(time_buf);
   *ptr_ready++ = ss;
 	
+	/*   int s_len = strlen(ptr_raw); */
+	/*   memcpy(ptr_ready, ptr_raw, s_len); */
+	/* ptr_raw += s_len; */
+	/* *ptr_raw = '\0'; */
 
-  
-  int s_len = strlen(ptr_raw);
-  memcpy(ptr_ready, ptr_raw, s_len);
-	ptr_raw += s_len;
-	*ptr_raw = '\0';
+  int s_len = 0;
+  while(*ptr_raw && *ptr_raw != '\n') {
+    *ptr_ready++ = *ptr_raw++;
+    s_len++;
+  }
+  *ptr_ready = '\0';
 
 	/* printf("[+] Hex dump in parse_msg:\n"); */
 	/* hex_dump(state.curr_msg_ready, 56); */
