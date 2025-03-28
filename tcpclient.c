@@ -155,7 +155,7 @@ void send_msgs(FILE* f) {
   // wait_ok_msg();
   
   while(fgets(state.curr_msg_raw, MAX_MSG_SIZE, f)) {
-    printf("%s\n", state.curr_msg_raw);
+    /* printf("%s\n", state.curr_msg_raw); */
     char* ptr = state.curr_msg_raw;
     /* while(*ptr && (*ptr == '\n' || *ptr == '\r')) ptr++; */
 		if(*ptr == '\0' || *ptr == '\n' || *ptr == '\r') continue;

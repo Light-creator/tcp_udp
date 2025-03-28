@@ -192,7 +192,7 @@ void fatal_err(const char* msg) {
   clean_server();
   free_vars();
 
-  printf("%s", msg);
+  /* printf("%s", msg); */
   exit(1);
 }
 
