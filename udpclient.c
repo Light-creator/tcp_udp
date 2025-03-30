@@ -161,13 +161,13 @@ void recv_msg() {
     int recived_msg = ntohl(buf[i])-1;
     if(recived_msg < 0) continue;
 
-		printf("[+] Recived: ");
+		/* printf("[+] Recived: "); */
     if(recived_msg < state.count_msgs && state.msgs_hash[recived_msg] == 0) {
-      printf("%d ", recived_msg);
+      /* printf("%d ", recived_msg); */
 			state.recived_msgs++;
       state.msgs_hash[recived_msg] = 1;
     }
-		printf("\n");
+		/* printf("\n"); */
   }
 }
 

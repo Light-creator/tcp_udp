@@ -1,4 +1,5 @@
 #include <netinet/in.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -144,12 +145,15 @@ void handle_msg(FILE* f, int client_idx) {
   memset(state.curr_msg, 0, MAX_MSG_SIZE);
 
   char* ptr = state.recv_buf;
+  if(strncmp(ptr, "put", 3) == 0) return;
 
   uint32_t recv_idx = 0;
   memcpy(&recv_idx, ptr, sizeof(uint32_t));
   ptr += sizeof(uint32_t);
   recv_idx = ntohl(recv_idx);
 	uint32_t arr_idx = recv_idx % MAX_MSGS;
+  
+  /* printf("[+] Recived: %u | %u\n", recv_idx, arr_idx); */
 
   char phone_1[PHONE_SIZE];
   memcpy(phone_1, ptr, sizeof(char)*PHONE_SIZE);
@@ -172,7 +176,7 @@ void handle_msg(FILE* f, int client_idx) {
   
   if(strncmp(state.curr_msg, "stop", 4) == 0 && s_len == 4) state.stop_server = 1;
   
-	/* printf("Recived Message: %d %s %s %02hhu:%02hhu:%02hhu %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg); */
+	/* printf("Recived Message: %u %s %s %02hhu:%02hhu:%02hhu %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg); */
     
   if(state.clients[client_idx].recived_msgs[arr_idx] == -1) {
     uint32_t ip = ntohl(state.clients[client_idx].ip);
@@ -244,9 +248,16 @@ int main(int argc, char** argv) {
         uint32_t msgs_to_send[MAX_MSGS];
         int j = 0;
         for(int i=0; i<MAX_MSGS; i++) {
-          if(state.clients[client_idx].recived_msgs[i] != -1) 
+          uint32_t maxi = MAX_MSGS;
+          if(state.clients[client_idx].recived_msgs[i] != -1) {
+            if(maxi < state.clients[client_idx].recived_msgs[i]) maxi = state.clients[client_idx].recived_msgs[i];
             msgs_to_send[j++] = htonl(state.clients[client_idx].recived_msgs[i]);
+            /* printf("%u ", state.clients[client_idx].recived_msgs[i]); */
+          }
         }
+        /* printf("\n"); */
+
+        while(j < MAX_MSGS) msgs_to_send[j++] = maxi;
         
         int send_status = sendto(state.socks[i], msgs_to_send, sizeof(uint32_t)*MAX_MSGS, MSG_NOSIGNAL, 
                                  (struct sockaddr*)&client_addr, client_size);

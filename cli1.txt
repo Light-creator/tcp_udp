@@ -1,10 +1,1 @@
-+79939432230 +79359476273 02:25:58 msg1
-+79129494976 +79038268851 15:36:36 msg2
-+79643119208 +79667972388 02:46:54 msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3
-+79627672241 +79841449262 01:39:31 msg4
-
-
-+79593510052 +79259206094 04:16:58 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 
-+79601899495 +79482594414 07:27:39 msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6
-
-+79394953304 +79665939112 02:03:47 stop
+4 5 6 7 8
