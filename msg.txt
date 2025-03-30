@@ -1,7 +1,8 @@
-127.0.0.1:40422 +79939432230 +79359476273 02:25:58 msg1
-127.0.0.1:40422 +79129494976 +79038268851 15:36:36 msg2
-127.0.0.1:40422 +79643119208 +79667972388 02:46:54 msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3
-127.0.0.1:40422 +79627672241 +79841449262 01:39:31 msg4
-127.0.0.1:40422 +79593510052 +79259206094 04:16:58 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 
-127.0.0.1:40422 +79601899495 +79482594414 07:27:39 msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6
-127.0.0.1:40422 +79394953304 +79665939112 02:03:47 stop
+
+127.0.0.1:55595 +79939432230 +79359476273 02:25:58 msg1
+127.0.0.1:55595 +79129494976 +79038268851 15:36:36 msg2
+127.0.0.1:55595 +79643119208 +79667972388 02:46:54 msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3msg3
+127.0.0.1:55595 +79627672241 +79841449262 01:39:31 msg4
+127.0.0.1:55595 +79593510052 +79259206094 04:16:58 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 msg5 
+127.0.0.1:55595 +79601899495 +79482594414 07:27:39 msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6msg6
+127.0.0.1:55595 +79394953304 +79665939112 02:03:47 stop

@@ -44,7 +44,7 @@ typedef struct state_t_ {
 state_t state;
 
 void parse_msg(uint32_t idx, char* dst, int msg_idx) {
-  idx = htonl(idx);
+  idx = htonl(idx+1);
 
   char* ptr_raw = state.curr_msg_raw;
   char* ptr_ready = dst;
@@ -158,14 +158,16 @@ void recv_msg() {
   if(recv_status <= 0) return;
   
   for(int i=0; i<MAX_MSGS; i++) {
-    uint32_t recived_msg = ntohl(buf[i]);
-		/* printf("[+] Recived: "); */
+    int recived_msg = ntohl(buf[i])-1;
+    if(recived_msg < 0) continue;
+
+		printf("[+] Recived: ");
     if(recived_msg < state.count_msgs && state.msgs_hash[recived_msg] == 0) {
-      /* printf("%u ", recived_msg); */
+      printf("%d ", recived_msg);
 			state.recived_msgs++;
       state.msgs_hash[recived_msg] = 1;
     }
-		/* printf("\n"); */
+		printf("\n");
   }
 }
 
