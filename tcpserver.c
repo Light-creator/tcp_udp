@@ -63,7 +63,7 @@ void add_client(client_t* clients, WSAEVENT event, int fd, struct sockaddr_in ad
   }
 }
 
-bool is_client_active(client_t* clients, int idx) {
+int is_client_active(client_t* clients, int idx) {
   return (clients[idx].fd != -1);
 }
 
