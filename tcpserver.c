@@ -1,5 +1,8 @@
+#define _CRT_SECURE_NO_WARNINGS
+#define WIN32_LEAN_AND_MEAN
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
 #include <stdint.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -13,6 +16,7 @@
 
 #define MAX_CLIENTS 64
 #define MAX_MSG_SIZE 65535
+#define MAX_BUF_SIZE MAX_MSG_SIZE*6
 
 #define PHONE_SIZE 13
 #define TIME_SIZE 2
@@ -25,6 +29,10 @@ typedef struct client_t_ {
 
   uint32_t ip;
   uint16_t port;
+  bool flag_put;
+
+  char* recv_buf;
+  char* ptr;
 } client_t;
 
 typedef struct state_t_ {
@@ -45,7 +53,7 @@ typedef struct state_t_ {
 state_t state;
 
 void init_clients(client_t* clients) {
-  for(int i=0; i<MAX_CLIENTS; i++) clients[i].fd = -1;
+  for(int i=0; i<MAX_CLIENTS; i++) state.clients[i].fd = -1;
 }
 
 void add_client(client_t* clients, WSAEVENT event, int fd, struct sockaddr_in addr) {
@@ -58,7 +66,12 @@ void add_client(client_t* clients, WSAEVENT event, int fd, struct sockaddr_in ad
       clients[i].addr = addr;
       clients[i].ip = ip;
       clients[i].port = port;
+
+      /* clients[i].recv_buf = (char*)malloc(sizeof(char)*MAX_BUF_SIZE); */
+      /* clients[i].ptr = clients[i].recv_buf; */
+
       WSAEventSelect(clients[i].fd, event, FD_READ | FD_WRITE | FD_CLOSE);
+      break;
     }
   }
 }
@@ -68,8 +81,12 @@ int is_client_active(client_t* clients, int idx) {
 }
 
 void del_client(client_t* clients, int idx) {
-  closesocket(clients[idx].fd);
+  closesocket(state.clients[idx].fd);
   clients[idx].fd = -1;
+  clients[idx].flag_put = false;
+
+  /* free(clients[idx].recv_buf); */
+
   memset(&clients[idx].addr, 0, sizeof(clients[idx].addr));
 }
 
@@ -93,64 +110,170 @@ void hex_dump(char* buf, int len) {
 	printf("\n");
 }
 
+void handle_msgs(int idx, FILE* f) {
+  char* ptr = state.recv_buf;
+  /* hex_dump(ptr, 256); */
+  
+  int c_idx = 4;
+  ptr += 4;
+  if(!state.clients[idx].flag_put) {
+    ptr += 3;
+    c_idx += 3;
+    state.clients[idx].flag_put = true;
+  }
+  /* if(strncmp(ptr, "put", 3) == 0) ptr += 3; */
+  
+  while(c_idx < MAX_BUF_SIZE) {
+    char phone_1[PHONE_SIZE];
+    memcpy(phone_1, ptr, sizeof(char)*PHONE_SIZE);
+    ptr += PHONE_SIZE - 1;
+    phone_1[PHONE_SIZE-1] = '\0';
+
+    char phone_2[PHONE_SIZE];
+    memcpy(phone_2, ptr, sizeof(char)*PHONE_SIZE);
+    ptr += PHONE_SIZE - 1;
+    phone_2[PHONE_SIZE-1] = '\0';
+
+    uint8_t hh = *ptr++;
+    uint8_t mm = *ptr++;
+    uint8_t ss = *ptr++;
+
+    int s_len = strlen(ptr);
+    /* memcpy(state.curr_msg, ptr, s_len); */
+    uint32_t ip = ntohl(state.clients[idx].ip);
+    uint16_t port = ntohs(state.clients[idx].port);
+    
+    c_idx += 27 + s_len;
+    /* printf("first_flag: true | recv: %d | last_byte: %d | msg_idx: %d\n", recv_status, *(ptr+s_len), msg_idx); */
+    fprintf(f, "%u.%u.%u.%u:%u %s %s %02hhu:%02hhu:%02hhu %s\n", 
+        ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, 
+        port,
+        phone_1, phone_2, hh, mm, ss, ptr);
+      
+    if(strncmp(ptr, "stop", 4) == 0) state.stop_server = 1;
+
+    ptr += s_len;
+    send(state.clients[idx].fd, "ok", 2, 0);
+    /* printf("[+] Sended\n"); */
+      
+
+    while(c_idx < MAX_BUF_SIZE && *ptr == 0) {
+      *ptr++;
+      c_idx++;
+    }
+    ptr++; c_idx++;
+  }
+}
+
+void recv_msgs(int idx, FILE* f) {
+  memset(state.recv_buf, 0, MAX_BUF_SIZE);
+  
+  char* ptr = state.recv_buf;
+  int recv_status;
+  bool flag_recived = false;
+
+  /*  while((recv_status = recv(state.clients[idx].fd, , MAX_MSG_SIZE, 0)) > 0) { */
+  /*   flag_recived = true; */
+  /*   state.clients[idx].ptr += recv_status; */
+
+  /* }  */
+
+  while((recv_status = recv(state.clients[idx].fd, ptr, MAX_MSG_SIZE, 0)) > 0) {
+    flag_recived = true;
+    ptr += recv_status;
+    if(recv_status < 10) Sleep(30);
+  }
+  
+  /* printf("[+] Done\n"); */
+  if(flag_recived) handle_msgs(idx, f);
+  /* send(state.clients[idx].fd, "ok", 2, 0); */
+}
+
 void handle_msg(int idx, char* recv_buf, FILE* f) {
-	/* printf("[+] Handle message\n"); */
+  /* printf("[+] Handle: %d\n", idx); */
   memset(state.recv_buf, 0, MAX_MSG_SIZE);
   memset(state.curr_msg, 0, MAX_MSG_SIZE);
   
   int client_len = sizeof(state.clients[idx].addr);
-  int recv_status = recv(state.clients[idx].fd, state.recv_buf, MAX_MSG_SIZE, 0);
- 
-	/* hex_dump(state.recv_buf, 56); */
-  char* ptr = state.recv_buf;
+  int recv_status;
 
-  if(strncmp(state.recv_buf, "put", 3) == 0) {
-    int send_status = send(state.clients[idx].fd, "ok", 2, 0);
-    ptr += 3;
-		/* while(*ptr && (*ptr = ' ' || *ptr == '\n' || *ptr == '\r')) ptr++; */
-		/* if(*ptr == '\0') return; */
-		if(*(ptr+4) != 0x2b) return;
-  }
-
-  uint32_t recv_idx = 0;
-  memcpy(&recv_idx, ptr, sizeof(uint32_t));
-  ptr += sizeof(uint32_t);
-  recv_idx = htonl(recv_idx);
-	
-	/* printf("%u\n", recv_idx); */
-
-  char phone_1[PHONE_SIZE];
-  memcpy(phone_1, ptr, sizeof(char)*PHONE_SIZE);
-  ptr += PHONE_SIZE - 1;
-  phone_1[PHONE_SIZE-1] = '\0';
-
-  char phone_2[PHONE_SIZE];
-  memcpy(phone_2, ptr, sizeof(char)*PHONE_SIZE);
-  ptr += PHONE_SIZE - 1;
-  phone_2[PHONE_SIZE-1] = '\0';
+  bool flag_put = false;
+  bool flag_recived = false;
+  char start_buffer[4];
+  recv_status = recv(state.clients[idx].fd, start_buffer, 4, 0);
   
-  uint8_t hh = *ptr++;
-  uint8_t mm = *ptr++;
-  uint8_t ss = *ptr++;
+  /* if(recv_status == 1) return; */
+
+  if(strncmp(start_buffer, "put", 3) == 0) {
+    flag_put = true;
+    /* int send_status = send(state.clients[idx].fd, "ok", 2, 0); */
+    /* return;  */
+  }
+  
+  int first_flag = 1;
+  int msg_idx = 0;
+  while((recv_status = recv(state.clients[idx].fd, state.recv_buf, MAX_MSG_SIZE, 0)) > 0) {
+    char* ptr = state.recv_buf;
     
-  int s_len = strlen(ptr);
-  memcpy(state.curr_msg, ptr, s_len);
-  ptr += s_len-2;
-  *ptr = '\0';
-	
-  if(strncmp(state.curr_msg, "stop", 4) == 0 && s_len == 4) state.stop_server = 1;
-	
-  uint32_t ip = ntohl(state.clients[idx].ip);
-  uint16_t port = ntohs(state.clients[idx].port);
-	/* printf("From ip:port -> %u.%u.%u.%u:%u\n", ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, port); */
-  fprintf(f, "%u.%u.%u.%u:%u %s %s %02hhu:%02hhu:%02hhu %s\n", 
+    if(flag_put) {
+      flag_put = false;
+      ptr += 3;
+    }
+
+    flag_recived = true;
+
+    if(first_flag) {
+      char phone_1[PHONE_SIZE];
+      memcpy(phone_1, ptr, sizeof(char)*PHONE_SIZE);
+      ptr += PHONE_SIZE - 1;
+      phone_1[PHONE_SIZE-1] = '\0';
+
+      char phone_2[PHONE_SIZE];
+      memcpy(phone_2, ptr, sizeof(char)*PHONE_SIZE);
+      ptr += PHONE_SIZE - 1;
+      phone_2[PHONE_SIZE-1] = '\0';
+
+      uint8_t hh = *ptr++;
+      uint8_t mm = *ptr++;
+      uint8_t ss = *ptr++;
+
+      int s_len = strlen(ptr);
+      memcpy(state.curr_msg, ptr, s_len);
+      // *(state.curr_msg+s_len) = '\0';
+      
+      uint32_t ip = ntohl(state.clients[idx].ip);
+      uint16_t port = ntohs(state.clients[idx].port);
+      /* printf("%d\n", *(ptr+s_len)); */
+      
+      /* printf("first_flag: true | recv: %d | last_byte: %d | msg_idx: %d\n", recv_status, *(ptr+s_len), msg_idx); */
+      fprintf(f, "%u.%u.%u.%u:%u %s %s %02hhu:%02hhu:%02hhu %s", 
           ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, 
           port,
-          phone_1, phone_2, hh, mm, ss, state.curr_msg);
+          phone_1, phone_2, hh, mm, ss, ptr);
 
-	/* printf("Recived Message: %d %s %s %02hhu:%02hhu:%02hhu %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg); */
-  // fprintf(f, "%s %s %d:%d:%d %s\n", phone_1, phone_2, hh, mm, ss, state.curr_msg);
-  int send_status = send(state.clients[idx].fd, "ok", 2, 0);
+      first_flag = 0;
+    } else {
+      /* printf("first_flag: false | recv: %d | last_byte: %d | msg_idx: %d\n", recv_status, *(ptr+recv_status), msg_idx); */
+      /* if(*(ptr+recv_status) == '\0') first_flag = 1; */
+      fprintf(f, "%s", ptr);    
+      if(*(ptr+recv_status) == 'p') state.stop_server = 1;
+      printf("%d\n", *(ptr+recv_status));
+    }
+    
+    msg_idx++;
+
+    if(strncmp(state.curr_msg, "stop", 4) == 0) state.stop_server = 1;
+
+    memset(state.curr_msg, 0, MAX_MSG_SIZE);
+    memset(state.recv_buf, 0, MAX_BUF_SIZE);
+
+    /* printf("From ip:port -> %u.%u.%u.%u:%u\n", ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, port); */
+
+    /* printf("Recived Message: %d %s %s %02hhu:%02hhu:%02hhu %s\n", recv_idx, phone_1, phone_2, hh, mm, ss, state.curr_msg); */
+    // fprintf(f, "%s %s %d:%d:%d %s\n", phone_1, phone_2, hh, mm, ss, state.curr_msg);
+  }
+
+  if(flag_recived) send(state.clients[idx].fd, "ok", 2, 0);
 }
 
 void free_vars() {
@@ -174,7 +297,7 @@ int main(int argc, char** argv) {
 
   WSAStartup(MAKEWORD(2, 2), &state.wsa);
   
-  state.recv_buf = (char*)malloc(sizeof(char)*MAX_MSG_SIZE);
+  state.recv_buf = (char*)malloc(sizeof(char)*MAX_BUF_SIZE);
   state.curr_msg = (char*)malloc(sizeof(char)*MAX_MSG_SIZE);
 
   state.sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -182,11 +305,9 @@ int main(int argc, char** argv) {
     fatal_err("Failed to create socket\n");
   }
 
-  // set socket to non-blocking mode
   unsigned long mode = 1;
   ioctlsocket(state.sock, FIONBIO, &mode);
 
-  // init_events
   init_events();
 
   init_clients(state.clients);
@@ -207,7 +328,6 @@ int main(int argc, char** argv) {
   
   FILE* f = fopen("msg.txt", "w");
 
-  // printf("Init success\n");
   while(!state.stop_server) {
     WSANETWORKEVENTS ne;
     DWORD dw = WSAWaitForMultipleEvents(2, state.events, false, 1000, false);
@@ -226,19 +346,21 @@ int main(int argc, char** argv) {
     
     for(int i=0; i<MAX_CLIENTS; i++) {
       if(!is_client_active(state.clients, i)) continue;
-    
       if(WSAEnumNetworkEvents(state.clients[i].fd, state.events[1], &ne) == 0) {
         if(ne.lNetworkEvents & FD_READ) {
-          handle_msg(i, state.recv_buf, f);
+        /* printf("[+] Read\n"); */
+          recv_msgs(i, f);
         }
 
         if(ne.lNetworkEvents & FD_CLOSE) {
+          /* printf("[+] Close\n"); */
           del_client(state.clients, i);
         }
       }
     }
   }
 
+  WSACleanup();
   server_clean();
   free_vars();
   closesocket(state.sock);
