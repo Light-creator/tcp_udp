@@ -161,6 +161,20 @@ void send_msgs(FILE* f) {
 		if(*ptr == '\0' || *ptr == '\n' || *ptr == '\r') continue;
 		
 		/* printf("Parsing msg: %d\n", idx); */
+    if(state.curr_msg_raw[0] != '+') {
+      memset(state.curr_msg_ready, 0, MAX_MSG_SIZE);
+      char* ptr_ready = state.curr_msg_ready;
+      char* ptr_raw = state.curr_msg_raw;
+      
+      int sz = 0;
+      while(*ptr_raw) {
+        *ptr_ready++ = *ptr_raw++;
+        sz++;
+      }
+
+      send(state.sock, state.curr_msg_raw, sz, 0);
+    }
+
     parse_msg(idx++);
     send_msg();
     /* printf("[+] Sended msg: %d\n", idx-1); */
