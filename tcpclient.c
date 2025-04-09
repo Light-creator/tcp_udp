@@ -11,7 +11,7 @@
 #define RECV_BUF_SIZE 64
 #define PORT 9000
 
-#define MAX_MSG_SIZE 65535
+#define MAX_MSG_SIZE 65535*8
 
 #define PHONE_SIZE 12
 #define TIME_SIZE 2
@@ -83,11 +83,6 @@ void parse_msg(uint32_t idx) {
   uint8_t ss = (uint8_t)atoi(time_buf);
   *ptr_ready++ = ss;
 	
-	/*   int s_len = strlen(ptr_raw); */
-	/*   memcpy(ptr_ready, ptr_raw, s_len); */
-	/* ptr_raw += s_len; */
-	/* *ptr_raw = '\0'; */
-
   int s_len = 0;
   while(*ptr_raw && *ptr_raw != '\n') {
     *ptr_ready++ = *ptr_raw++;
@@ -149,7 +144,7 @@ void wait_ok_msg() {
 void send_msgs(FILE* f) {
   int read_status;
   uint32_t idx = 0;
-  char recv_buf[MAX_MSG_SIZE];
+  /* char recv_buf[MAX_MSG_SIZE]; */
 
   int send_status = send(state.sock, "put", 3, 0);
   // wait_ok_msg();
@@ -157,24 +152,11 @@ void send_msgs(FILE* f) {
   while(fgets(state.curr_msg_raw, MAX_MSG_SIZE, f)) {
     /* printf("%s\n", state.curr_msg_raw); */
     char* ptr = state.curr_msg_raw;
+
+
     /* while(*ptr && (*ptr == '\n' || *ptr == '\r')) ptr++; */
 		if(*ptr == '\0' || *ptr == '\n' || *ptr == '\r') continue;
 		
-		/* printf("Parsing msg: %d\n", idx); */
-    if(state.curr_msg_raw[0] != '+') {
-      memset(state.curr_msg_ready, 0, MAX_MSG_SIZE);
-      char* ptr_ready = state.curr_msg_ready;
-      char* ptr_raw = state.curr_msg_raw;
-      
-      int sz = 0;
-      while(*ptr_raw) {
-        *ptr_ready++ = *ptr_raw++;
-        sz++;
-      }
-
-      send(state.sock, state.curr_msg_raw, sz, 0);
-    }
-
     parse_msg(idx++);
     send_msg();
     /* printf("[+] Sended msg: %d\n", idx-1); */
