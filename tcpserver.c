@@ -35,6 +35,8 @@ typedef struct client_t_ {
 
   char* recv_buf;
   char* ptr;
+  char* recv_ptr;
+
   uint32_t recived;
   uint32_t c_idx;
 } client_t;
@@ -74,6 +76,7 @@ void add_client(client_t* clients, WSAEVENT event, int fd, struct sockaddr_in ad
       clients[i].recv_buf = (char*)malloc(sizeof(char)*MAX_BUF_SIZE);
       memset(clients[i].recv_buf, 0, MAX_BUF_SIZE);
       clients[i].ptr = clients[i].recv_buf;
+      clients[i].recv_ptr = clients[i].recv_buf;
 
       WSAEventSelect(clients[i].fd, event, FD_READ | FD_ACCEPT | FD_CLOSE);
       break;
@@ -118,7 +121,9 @@ void hex_dump(char* buf, int len) {
 }
 
 void handle_msgs(int idx, FILE* f) {
-  if(state.clients[idx].recived - state.clients[idx].c_idx < 3) return;
+  if(state.clients[idx].recived - state.clients[idx].c_idx < 3) {
+    return;
+  }
   
   // printf("Client with index: %d\n", idx);
   if(!state.clients[idx].flag_put) {
@@ -215,97 +220,21 @@ void handle_msgs(int idx, FILE* f) {
 
 }
 
-// void handle_msgs(int idx, FILE* f) {
-//   if(state.clients[idx].recived - state.clients[idx].c_idx < 3) return;
-//  
-//   // printf("Client with index: %d\n", idx);
-//   if(!state.clients[idx].flag_put) {
-//     // log("Skip put msg");
-//     state.clients[idx].ptr += 3;
-//     state.clients[idx].c_idx += 3;
-//     state.clients[idx].flag_put = true;
-//   }
-// 
-//   char* ptr = state.clients[idx].ptr;
-//   // hex_dump(ptr, 128); 
-//
-//   int c_idx = state.clients[idx].c_idx;
-//  
-//   if(state.clients[idx].recived - c_idx < 32) return;
-//  
-//   while(c_idx < state.clients[idx].recived) {
-//     c_idx += 4;
-//     ptr += 4;
-//     char phone_1[PHONE_SIZE];
-//     memcpy(phone_1, ptr, sizeof(char)*PHONE_SIZE);
-//     ptr += PHONE_SIZE - 1;
-//     phone_1[PHONE_SIZE-1] = '\0';
-//
-//     char phone_2[PHONE_SIZE];
-//     memcpy(phone_2, ptr, sizeof(char)*PHONE_SIZE);
-//     ptr += PHONE_SIZE - 1;
-//     phone_2[PHONE_SIZE-1] = '\0';
-//
-//     uint8_t hh = *ptr++;
-//     uint8_t mm = *ptr++;
-//     uint8_t ss = *ptr++;
-//
-//     uint32_t ip = ntohl(state.clients[idx].ip);
-//     uint16_t port = ntohs(state.clients[idx].port);
-//    
-//     char* msg = ptr;
-//      
-//     // Last byte of the message should be 0
-//     c_idx += 27;
-//     while(c_idx < state.clients[idx].recived && state.clients[idx].recv_buf[c_idx] != '\0') {
-//       c_idx++;
-//       ptr++;
-//     }
-//  
-//     if(c_idx >= state.clients[idx].recived) return;
-//      
-//     int send_status = send(state.clients[idx].fd, "ok", 2, 0);
-//     printf("send_status: %d\n", send_status);
-//     if (send_status == SOCKET_ERROR) {
-//       int error = WSAGetLastError();
-//       if (error == WSAECONNRESET) {
-//         printf("[!] Клиент %d разорвал соединение (RST)\n", idx);
-//       } else {
-//         printf("[!] Ошибка отправки: %d\n", error);
-//       }
-//     }
-//
-//     if(send_status < 0) return;
-//
-//     fprintf(f, "%u.%u.%u.%u:%u %s %s %02hhu:%02hhu:%02hhu %s\n", 
-//         ip&0xff, (ip>>8)&0xff, (ip>>16)&0xff, (ip>>24)&0xff, 
-//         port,
-//         phone_1, phone_2, hh, mm, ss, msg);
-//      
-//     if(strncmp(msg, "stop", 4) == 0 && *(msg+4) == '\0') state.stop_server = 1;
-//      
-//     ptr++;
-//     c_idx++;
-//
-//     state.clients[idx].ptr = ptr;
-//     state.clients[idx].c_idx = c_idx;
-//   }
-// }
-
 void recv_msgs(int idx, FILE* f) {
   memset(state.recv_buf, 0, MAX_BUF_SIZE);
   
   // char* ptr = state.recv_buf;
-  char* ptr = state.clients[idx].ptr;
+  // char* ptr = state.clients[idx].ptr;
   int recv_status;
   bool flag_recived = false;
   
   uint32_t total_recived = 0;
-  while((recv_status = recv(state.clients[idx].fd, ptr, MAX_MSG_SIZE, 0)) > 0) {
+  while((recv_status = recv(state.clients[idx].fd, state.clients[idx].recv_ptr, MAX_MSG_SIZE, 0)) > 0) {
     // printf("recv: %d\n", recv_status);
     flag_recived = true;
    
-    ptr += recv_status;
+    // ptr += recv_status;
+    state.clients[idx].recv_ptr += recv_status;
     state.clients[idx].recived += recv_status;
   
     total_recived += recv_status;

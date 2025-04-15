@@ -18,7 +18,7 @@
 #define SECOND_PART_SIZE  MAX_MSG_SIZE-FIRST_PART_SIZE
 #define SPACES_SIZE 3
 
-#define MAX_MSGS 64
+#define MAX_MSGS 128
 #define LIM_MSGS 20
 
 typedef struct state_t_ {
